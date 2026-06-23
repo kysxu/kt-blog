@@ -1,9 +1,11 @@
+import NavBar from "./components/NavBar";
+
 function App() {
   return (
-    <section>
-      <h1>My First React App on Vite</h1>
-    </section>
-  )
+    <>
+      <NavBar />
+    </>
+  );
 }
 
-export default App
+export default App;
