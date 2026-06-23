@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { blogPosts } from "../data/blogPosts";
@@ -51,6 +52,21 @@ function BlogCard({ image, category, title, description, author, date }) {
 
 export default function ArticleSection() {
   const categories = ["Highlight", "Cat", "Inspiration", "General"];
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Highlight");
+
+  const filteredPosts = blogPosts.filter((post) => {
+    const matchesCategory =
+      selectedCategory === "Highlight" ||
+      post.category.toLowerCase() === selectedCategory.toLowerCase();
+
+    const matchesSearch =
+      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.description.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesCategory && matchesSearch;
+  });
+
   return (
     <div className="w-full max-w-7xl mx-auto md:px-6 lg:px-8 mb-40 mt-4">
       <h2 className="text-xl font-bold mb-4 px-4">Latest articles</h2>
@@ -61,12 +77,14 @@ export default function ArticleSection() {
             <Input
               type="text"
               placeholder="Search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="py-3 rounded-sm placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-muted-foreground"
             />
           </div>
         </div>
         <div className="md:hidden w-full">
-          <Select value="Highlight">
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
             <SelectTrigger className="w-full py-3 rounded-sm text-muted-foreground focus:ring-0 focus:ring-offset-0 focus:border-muted-foreground">
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
@@ -82,18 +100,15 @@ export default function ArticleSection() {
           </Select>
         </div>
         <div className="hidden md:flex space-x-2">
-          <button
-            className="px-4 py-3 transition-colors rounded-sm text-sm text-muted-foreground font-medium bg-[#DAD6D1]
-            "
-          >
-            Highlight
-          </button>
-            {categories.slice(1).map((cat) => {
+          {categories.map((cat) => {
+            const isActive = selectedCategory === cat;
             return (
               <button
                 key={cat}
-                className="px-4 py-3 transition-colors rounded-sm text-sm text-muted-foreground font-medium hover:bg-muted
-              "
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-4 py-3 transition-colors rounded-sm text-sm text-muted-foreground font-medium cursor-pointer ${
+                  isActive ? "bg-[#DAD6D1]" : "hover:bg-muted"
+                }`}
               >
                 {cat}
               </button>
@@ -102,7 +117,7 @@ export default function ArticleSection() {
         </div>
       </div>
       <article className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4 md:px-0">
-        {blogPosts.map((blog, index) => {
+        {filteredPosts.map((blog, index) => {
           return (
             <BlogCard
               key={index}
