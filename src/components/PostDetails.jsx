@@ -214,9 +214,11 @@ export default function PostDetails() {
 
         {/* Markdown Rendered Content */}
         <div className="prose dark:prose-invert max-w-none my-6">
-          <ReactMarkdown className="markdown text-foreground leading-relaxed">
-            {post.content}
-          </ReactMarkdown>
+          <div className="markdown text-foreground leading-relaxed">
+            <ReactMarkdown>
+              {post.content}
+            </ReactMarkdown>
+          </div>
         </div>
 
         {/* Copy Link & Share Actions */}

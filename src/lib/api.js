@@ -23,26 +23,76 @@ apiClient.interceptors.request.use((config) => {
 
 // Initialize localStorage fallback data if not present
 const initLocalStorage = () => {
-  if (!localStorage.getItem("fallback_posts")) {
-    localStorage.setItem("fallback_posts", JSON.stringify(defaultBlogPosts));
+  try {
+    if (!localStorage.getItem("fallback_posts")) {
+      localStorage.setItem("fallback_posts", JSON.stringify(defaultBlogPosts));
+    }
+  } catch (e) {
+    console.warn("Failed to init fallback_posts:", e);
   }
-  if (!localStorage.getItem("fallback_categories")) {
-    localStorage.setItem("fallback_categories", JSON.stringify(["Highlight", "Cat", "Inspiration", "General"]));
+
+  try {
+    if (!localStorage.getItem("fallback_categories")) {
+      localStorage.setItem("fallback_categories", JSON.stringify(["Highlight", "Cat", "Inspiration", "General"]));
+    }
+  } catch (e) {
+    console.warn("Failed to init fallback_categories:", e);
   }
-  if (!localStorage.getItem("fallback_users")) {
-    localStorage.setItem("fallback_users", JSON.stringify([]));
+
+  try {
+    if (!localStorage.getItem("fallback_users")) {
+      localStorage.setItem("fallback_users", JSON.stringify([
+        { email: "test@example.com", password: "password", username: "tester", avatar: null },
+        { email: "admin@example.com", password: "password", username: "Admin", avatar: null }
+      ]));
+    }
+  } catch (e) {
+    console.warn("Failed to init fallback_users:", e);
   }
 };
 
 initLocalStorage();
 
 // Helper to get local data
-const getLocalPosts = () => JSON.parse(localStorage.getItem("fallback_posts"));
-const setLocalPosts = (posts) => localStorage.setItem("fallback_posts", JSON.stringify(posts));
-const getLocalCategories = () => JSON.parse(localStorage.getItem("fallback_categories"));
-const setLocalCategories = (cats) => localStorage.setItem("fallback_categories", JSON.stringify(cats));
-const getLocalUsers = () => JSON.parse(localStorage.getItem("fallback_users"));
-const setLocalUsers = (users) => localStorage.setItem("fallback_users", JSON.stringify(users));
+const getLocalPosts = () => {
+  try {
+    const val = localStorage.getItem("fallback_posts");
+    return val ? JSON.parse(val) : defaultBlogPosts;
+  } catch (e) {
+    return defaultBlogPosts;
+  }
+};
+const setLocalPosts = (posts) => {
+  try {
+    localStorage.setItem("fallback_posts", JSON.stringify(posts));
+  } catch (e) {}
+};
+const getLocalCategories = () => {
+  try {
+    const val = localStorage.getItem("fallback_categories");
+    return val ? JSON.parse(val) : ["Highlight", "Cat", "Inspiration", "General"];
+  } catch (e) {
+    return ["Highlight", "Cat", "Inspiration", "General"];
+  }
+};
+const setLocalCategories = (cats) => {
+  try {
+    localStorage.setItem("fallback_categories", JSON.stringify(cats));
+  } catch (e) {}
+};
+const getLocalUsers = () => {
+  try {
+    const val = localStorage.getItem("fallback_users");
+    return val ? JSON.parse(val) : [];
+  } catch (e) {
+    return [];
+  }
+};
+const setLocalUsers = (users) => {
+  try {
+    localStorage.setItem("fallback_users", JSON.stringify(users));
+  } catch (e) {}
+};
 
 export const api = {
   // --- CATEGORIES ---
@@ -154,6 +204,12 @@ export const api = {
   async register({ email, password, username }) {
     try {
       const response = await apiClient.post("/auth/register", { email, password, username });
+      // Sync registered user to local storage fallback
+      const users = getLocalUsers();
+      if (!users.some(u => u.email === email)) {
+        users.push({ email, password, username, avatar: null });
+        setLocalUsers(users);
+      }
       return response.data;
     } catch (error) {
       console.warn("API register failed, using localStorage fallback:", error.message);
@@ -175,6 +231,21 @@ export const api = {
       if (data.token) {
         localStorage.setItem("token", data.token);
       }
+      // Sync user profile to localStorage mock session
+      if (data.user) {
+        localStorage.setItem("mock_current_user", JSON.stringify(data.user));
+        // Add to local database if not present
+        const users = getLocalUsers();
+        if (!users.some(u => u.email === data.user.email)) {
+          users.push({
+            email: data.user.email,
+            password: password,
+            username: data.user.username || data.user.name || "User",
+            avatar: data.user.avatar || null
+          });
+          setLocalUsers(users);
+        }
+      }
       return data;
     } catch (error) {
       console.warn("API login failed, using localStorage fallback:", error.message);
@@ -193,7 +264,11 @@ export const api = {
   async getCurrentUser() {
     try {
       const response = await apiClient.get("/auth/get-user");
-      return response.data;
+      const user = response.data;
+      if (user) {
+        localStorage.setItem("mock_current_user", JSON.stringify(user));
+      }
+      return user;
     } catch (error) {
       console.warn("API getCurrentUser failed, using localStorage fallback:", error.message);
       const token = localStorage.getItem("token");
