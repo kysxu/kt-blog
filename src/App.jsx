@@ -4,6 +4,10 @@ import NavBar from "./components/NavBar";
 import HeroSection from "./components/HeroSection";
 import ArticleSection from "./components/ArticleSection";
 import PostDetails from "./components/PostDetails";
+import Login from "./components/Login";
+import Register from "./components/Register";
+import UserProfile from "./components/UserProfile";
+import AdminPanel from "./components/AdminPanel";
 import NotFound from "./components/NotFound";
 import Footer from "./components/Footer";
 
@@ -24,6 +28,10 @@ function App() {
               }
             />
             <Route path="/post/:postId" element={<PostDetails />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/profile" element={<UserProfile />} />
+            <Route path="/admin" element={<AdminPanel />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
