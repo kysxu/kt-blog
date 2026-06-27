@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { api } from "../lib/api";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 const authorImage = "https://res.cloudinary.com/dcbpjtd1r/image/upload/v1728449784/my-blog-post/xgfy0xnvyemkklcqodkg.jpg";
 import {
   Select,
@@ -71,6 +71,7 @@ function BlogCard({ id, image, category, title, description, author, date }) {
 }
 
 export default function ArticleSection() {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState(["Highlight", "Cat", "Inspiration", "General"]);
   const [posts, setPosts] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -78,6 +79,10 @@ export default function ArticleSection() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Autocomplete search states
+  const [searchResults, setSearchResults] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   // Fetch categories on mount
   useEffect(() => {
@@ -127,6 +132,32 @@ export default function ArticleSection() {
     return () => clearTimeout(delayDebounceFn);
   }, [selectedCategory, page, searchQuery]);
 
+  // Fetch autocomplete suggestions (globally across all categories)
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const fetchSuggestions = async () => {
+      try {
+        const data = await api.fetchPosts({
+          keyword: searchQuery,
+          limit: 10,
+        });
+        setSearchResults(data.posts || []);
+      } catch (err) {
+        console.error("Failed to fetch autocomplete suggestions:", err);
+      }
+    };
+
+    const delayDebounceFn = setTimeout(() => {
+      fetchSuggestions();
+    }, 250);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
   // Reset page when category or search query changes
   const handleCategoryChange = (cat) => {
     setSelectedCategory(cat);
@@ -150,7 +181,7 @@ export default function ArticleSection() {
       
       {/* Search & Category Filter Section */}
       <div className="bg-[#EFEEEB] px-4 py-4 md:py-3 md:rounded-sm flex flex-col space-y-4 md:gap-16 md:flex-row-reverse md:items-center md:space-y-0 md:justify-between mb-10">
-        <div className="w-full md:max-w-sm">
+        <div className="w-full md:max-w-sm relative">
           <div className="relative">
             <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <Input
@@ -158,9 +189,30 @@ export default function ArticleSection() {
               placeholder="Search"
               value={searchQuery}
               onChange={handleSearchChange}
-              className="py-3 rounded-sm placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-muted-foreground text-foreground bg-white"
+              onFocus={() => setShowDropdown(true)}
+              onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+              className="py-3 rounded-sm placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-muted-foreground text-foreground bg-white w-full"
             />
           </div>
+          
+          {/* Autocomplete Dropdown List */}
+          {showDropdown && searchResults.length > 0 && (
+            <div className="absolute left-0 right-0 top-full mt-1.5 bg-white dark:bg-zinc-900 border border-border rounded-md shadow-lg max-h-60 overflow-y-auto z-50">
+              {searchResults.map((post) => (
+                <div
+                  key={post.id}
+                  onMouseDown={() => {
+                    navigate(`/post/${post.id}`);
+                    setSearchQuery("");
+                    setShowDropdown(false);
+                  }}
+                  className="px-4 py-2.5 hover:bg-muted cursor-pointer text-sm text-foreground truncate border-b border-border last:border-0"
+                >
+                  {post.title}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         
         {/* Mobile Dropdown Category Filter */}
