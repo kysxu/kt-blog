@@ -47,10 +47,17 @@ export default function PostDetails() {
         setPost(fetchedPost);
         setLikes(fetchedPost.likes || 0);
 
-        // Load comments from localStorage
+        // Load comments from localStorage and clean legacy mock comments
         const localComments = localStorage.getItem(`comments_${postId}`);
         if (localComments) {
-          setComments(JSON.parse(localComments));
+          try {
+            const parsed = JSON.parse(localComments);
+            const cleaned = Array.isArray(parsed) ? parsed.filter(c => c.authorName !== "John Doe") : [];
+            setComments(cleaned);
+            localStorage.setItem(`comments_${postId}`, JSON.stringify(cleaned));
+          } catch (e) {
+            setComments([]);
+          }
         } else {
           setComments([]);
         }

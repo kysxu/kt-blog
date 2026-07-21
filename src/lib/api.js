@@ -396,13 +396,18 @@ export const api = {
   async createAdminPost(postData) {
     try {
       const response = await apiClient.post("/posts/admin", postData);
+      if (response.data && response.data.id) {
+        try { localStorage.removeItem(`comments_${response.data.id}`); } catch (e) {}
+      }
       return response.data;
     } catch (error) {
       console.warn("API createAdminPost failed, using localStorage fallback:", error.message);
       const posts = getLocalPosts();
+      const newId = posts.length > 0 ? Math.max(...posts.map(p => p.id)) + 1 : 1;
+      try { localStorage.removeItem(`comments_${newId}`); } catch (e) {}
       const newPost = {
         ...postData,
-        id: posts.length > 0 ? Math.max(...posts.map(p => p.id)) + 1 : 1,
+        id: newId,
         likes: 0,
         author: postData.author || "Admin",
         authorAvatar: postData.authorAvatar || null,
@@ -436,10 +441,12 @@ export const api = {
 
   async deleteAdminPost(postId) {
     try {
+      localStorage.removeItem(`comments_${postId}`);
       await apiClient.delete(`/posts/admin/${postId}`);
       return true;
     } catch (error) {
       console.warn(`API deleteAdminPost(${postId}) failed, using localStorage fallback:`, error.message);
+      try { localStorage.removeItem(`comments_${postId}`); } catch (e) {}
       const posts = getLocalPosts();
       const updated = posts.filter(p => String(p.id) !== String(postId));
       setLocalPosts(updated);
