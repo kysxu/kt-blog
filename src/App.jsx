@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
+import { Analytics } from "@vercel/analytics/react";
 import NavBar from "./components/NavBar";
 import HeroSection from "./components/HeroSection";
 import ArticleSection from "./components/ArticleSection";
@@ -37,6 +38,7 @@ function App() {
         </div>
         <Footer />
         <Toaster position="top-right" richColors />
+        <Analytics />
       </div>
     </Router>
   );
