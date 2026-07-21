@@ -1,7 +1,7 @@
 import axios from "axios";
 import { blogPosts as defaultBlogPosts } from "../data/blogPosts";
 
-const API_BASE_URL = "https://blog-post-project-api-with-db.vercel.app";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://personal-blog-api-jade.vercel.app";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
