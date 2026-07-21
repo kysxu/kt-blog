@@ -47,22 +47,12 @@ export default function PostDetails() {
         setPost(fetchedPost);
         setLikes(fetchedPost.likes || 0);
 
-        // Load comments from localStorage or initialize with default
+        // Load comments from localStorage
         const localComments = localStorage.getItem(`comments_${postId}`);
         if (localComments) {
           setComments(JSON.parse(localComments));
         } else {
-          // Default mock comments
-          const defaultComments = [
-            {
-              id: 1,
-              authorName: "John Doe",
-              content: "This was an amazing read! Very helpful insights.",
-              date: "12 September 2024",
-            }
-          ];
-          setComments(defaultComments);
-          localStorage.setItem(`comments_${postId}`, JSON.stringify(defaultComments));
+          setComments([]);
         }
       } catch (error) {
         console.error("Failed to load post:", error);
@@ -178,8 +168,8 @@ export default function PostDetails() {
         <div className="flex items-center justify-between border-y border-border py-4 my-2 text-sm">
           <div className="flex items-center">
             <img
-              className="w-10 h-10 rounded-full mr-3"
-              src={authorImage}
+              className="w-10 h-10 rounded-full mr-3 object-cover"
+              src={post.authorAvatar || authorImage}
               alt={post.author}
             />
             <div>

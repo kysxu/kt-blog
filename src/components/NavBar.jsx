@@ -15,10 +15,20 @@ export default function NavBar() {
   const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
-  const [notifications, setNotifications] = useState([
-    { id: 1, text: "Welcome to KT-Blog! Explore new articles now.", unread: true },
-    { id: 2, text: "Admin has published a new article: 'The Power of Habits'", unread: true }
-  ]);
+  const [notifications, setNotifications] = useState(() => {
+    try {
+      const saved = localStorage.getItem("kt_blog_notifications");
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("kt_blog_notifications", JSON.stringify(notifications));
+    } catch (e) {}
+  }, [notifications]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -37,6 +47,7 @@ export default function NavBar() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("mock_current_user");
+    localStorage.removeItem("current_user");
     setIsLoggedIn(false);
     setUser(null);
     navigate("/");
@@ -46,6 +57,10 @@ export default function NavBar() {
     setNotifications(prev => 
       prev.map(n => n.id === id ? { ...n, unread: false } : n)
     );
+  };
+
+  const handleMarkAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
   };
 
   const unreadCount = notifications.filter(n => n.unread).length;
@@ -71,8 +86,16 @@ export default function NavBar() {
                 )}
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-72 bg-white dark:bg-zinc-900 border border-border p-2 rounded-md shadow-lg" align="end">
-                <div className="px-2 py-1.5 text-xs font-bold text-foreground uppercase tracking-wider">
-                  Notifications
+                <div className="flex items-center justify-between px-2 py-1.5 text-xs font-bold text-foreground uppercase tracking-wider">
+                  <span>Notifications</span>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={handleMarkAllAsRead}
+                      className="text-[10px] text-muted-foreground hover:text-foreground normal-case font-normal cursor-pointer"
+                    >
+                      Mark all read
+                    </button>
+                  )}
                 </div>
                 <DropdownMenuSeparator />
                 {notifications.length === 0 ? (
@@ -116,9 +139,11 @@ export default function NavBar() {
                 <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/profile?tab=password")}>
                   <Settings className="w-4 h-4 mr-2" /> Reset password
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/admin")}>
-                  <ShieldAlert className="w-4 h-4 mr-2" /> Admin panel
-                </DropdownMenuItem>
+                {user?.role === "admin" && (
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/admin")}>
+                    <ShieldAlert className="w-4 h-4 mr-2" /> Admin panel
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="cursor-pointer text-red-500 focus:text-red-500 focus:bg-red-50" onClick={handleLogout}>
                   <LogOut className="w-4 h-4 mr-2" /> Log out
@@ -163,9 +188,11 @@ export default function NavBar() {
                 <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/profile?tab=password")}>
                   <Settings className="w-4 h-4 mr-2" /> Reset password
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/admin")}>
-                  <ShieldAlert className="w-4 h-4 mr-2" /> Admin panel
-                </DropdownMenuItem>
+                {user?.role === "admin" && (
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/admin")}>
+                    <ShieldAlert className="w-4 h-4 mr-2" /> Admin panel
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="cursor-pointer text-red-500 focus:text-red-500 focus:bg-red-50" onClick={handleLogout}>
                   <LogOut className="w-4 h-4 mr-2" /> Log out

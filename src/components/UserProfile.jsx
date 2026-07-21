@@ -4,7 +4,7 @@ import { api } from "../lib/api";
 import { toast } from "sonner";
 import { User, Lock, Save, Camera, Check } from "lucide-react";
 
-const mockAvatars = [
+const presetAvatars = [
   "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=150&auto=format&fit=crop&q=60",
   "https://images.unsplash.com/photo-1495360010541-f48722b34f7d?w=150&auto=format&fit=crop&q=60",
   "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=150&auto=format&fit=crop&q=60",
@@ -34,7 +34,7 @@ export default function UserProfile() {
         const currentUser = await api.getCurrentUser();
         setUser(currentUser);
         setUsername(currentUser.username || "");
-        setSelectedAvatar(currentUser.avatar || mockAvatars[0]);
+        setSelectedAvatar(currentUser.avatar || presetAvatars[0]);
       } catch (err) {
         toast.error("You must be logged in to view this page.");
         navigate("/login");
@@ -160,7 +160,7 @@ export default function UserProfile() {
                       className="w-16 h-16 rounded-full border border-border object-cover"
                     />
                     <div className="flex gap-2.5">
-                      {mockAvatars.map((av, index) => (
+                      {presetAvatars.map((av, index) => (
                         <button
                           key={index}
                           type="button"
