@@ -38,11 +38,18 @@ export default function AdminPanel() {
   const [deleteTargetId, setDeleteTargetId] = useState(null); // post id or category name
   const [deleteTargetType, setDeleteTargetType] = useState(null); // 'post' or 'category'
 
+  const [currentUser, setCurrentUser] = useState(null);
+
   useEffect(() => {
     const checkAdmin = async () => {
       try {
         const user = await api.getCurrentUser();
-        // Assume logged in users have access
+        setCurrentUser(user);
+        if (user.role !== "admin") {
+          toast.error("Access denied. Admin privileges required.");
+          navigate("/");
+          return;
+        }
         loadData();
       } catch (err) {
         toast.error("You must be logged in to access the admin panel.");
@@ -84,6 +91,8 @@ export default function AdminPanel() {
       description: postDescription || postContent.substring(0, 150) + "...",
       content: postContent,
       status: finalStatus,
+      author: currentUser?.username || currentUser?.email || "Admin",
+      authorAvatar: currentUser?.avatar || null,
       date: new Date().toISOString()
     };
 

@@ -40,11 +40,16 @@ const initLocalStorage = () => {
   }
 
   try {
-    if (!localStorage.getItem("fallback_users")) {
-      localStorage.setItem("fallback_users", JSON.stringify([
-        { email: "test@example.com", password: "password", username: "tester", avatar: null },
-        { email: "admin@example.com", password: "password", username: "Admin", avatar: null }
-      ]));
+    const defaultAdminUser = {
+      email: "felikzz98@gmail.com",
+      password: "password",
+      username: "felikzz98",
+      avatar: null,
+      role: "admin"
+    };
+    const currentUsers = localStorage.getItem("fallback_users");
+    if (!currentUsers || !JSON.parse(currentUsers).some(u => u.email === "felikzz98@gmail.com")) {
+      localStorage.setItem("fallback_users", JSON.stringify([defaultAdminUser]));
     }
   } catch (e) {
     console.warn("Failed to init fallback_users:", e);
@@ -91,6 +96,27 @@ const getLocalUsers = () => {
 const setLocalUsers = (users) => {
   try {
     localStorage.setItem("fallback_users", JSON.stringify(users));
+  } catch (e) {}
+};
+
+const getCurrentUserSession = () => {
+  try {
+    const val = localStorage.getItem("current_user") || localStorage.getItem("mock_current_user");
+    return val ? JSON.parse(val) : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+const setCurrentUserSession = (user) => {
+  try {
+    if (user) {
+      localStorage.setItem("current_user", JSON.stringify(user));
+      localStorage.setItem("mock_current_user", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("current_user");
+      localStorage.removeItem("mock_current_user");
+    }
   } catch (e) {}
 };
 
@@ -201,13 +227,18 @@ export const api = {
   },
 
   // --- AUTHENTICATION ---
-  async register({ email, password, username }) {
+  async register({ email, password, username, role }) {
+    // Admin email list
+    const adminEmails = ["felikzz98@gmail.com"];
+    const userRole = role || (adminEmails.includes(email.toLowerCase()) ? "admin" : "user");
+
     try {
-      const response = await apiClient.post("/auth/register", { email, password, username });
+      const response = await apiClient.post("/auth/register", { email, password, username, role: userRole });
+      const registeredUser = response.data.user || { email, password, username, avatar: null, role: userRole };
       // Sync registered user to local storage fallback
       const users = getLocalUsers();
       if (!users.some(u => u.email === email)) {
-        users.push({ email, password, username, avatar: null });
+        users.push(registeredUser);
         setLocalUsers(users);
       }
       return response.data;
@@ -217,7 +248,7 @@ export const api = {
       if (users.some(u => u.email === email)) {
         throw new Error("Email already registered");
       }
-      const newUser = { email, password, username, avatar: null };
+      const newUser = { email, password, username, avatar: null, role: userRole };
       users.push(newUser);
       setLocalUsers(users);
       return { message: "Registration successful" };
@@ -225,15 +256,20 @@ export const api = {
   },
 
   async login({ email, password }) {
+    const adminEmails = ["felikzz98@gmail.com"];
     try {
       const response = await apiClient.post("/auth/login", { email, password });
       const data = response.data;
       if (data.token) {
         localStorage.setItem("token", data.token);
       }
-      // Sync user profile to localStorage mock session
+      // Sync user profile to localStorage session
       if (data.user) {
-        localStorage.setItem("mock_current_user", JSON.stringify(data.user));
+        const userObj = {
+          ...data.user,
+          role: data.user.role || (adminEmails.includes(data.user.email?.toLowerCase()) ? "admin" : "user")
+        };
+        setCurrentUserSession(userObj);
         // Add to local database if not present
         const users = getLocalUsers();
         if (!users.some(u => u.email === data.user.email)) {
@@ -241,7 +277,8 @@ export const api = {
             email: data.user.email,
             password: password,
             username: data.user.username || data.user.name || "User",
-            avatar: data.user.avatar || null
+            avatar: data.user.avatar || null,
+            role: userObj.role
           });
           setLocalUsers(users);
         }
@@ -254,28 +291,42 @@ export const api = {
       if (!user) {
         throw new Error("Invalid email or password");
       }
-      const token = `mock-token-${Date.now()}`;
+      const userObj = {
+        ...user,
+        role: user.role || (adminEmails.includes(user.email.toLowerCase()) ? "admin" : "user")
+      };
+      const token = `token-${Date.now()}`;
       localStorage.setItem("token", token);
-      localStorage.setItem("mock_current_user", JSON.stringify(user));
-      return { token, user };
+      setCurrentUserSession(userObj);
+      return { token, user: userObj };
     }
   },
 
   async getCurrentUser() {
+    const adminEmails = ["felikzz98@gmail.com"];
     try {
       const response = await apiClient.get("/auth/get-user");
       const user = response.data;
       if (user) {
-        localStorage.setItem("mock_current_user", JSON.stringify(user));
+        const userObj = {
+          ...user,
+          role: user.role || (adminEmails.includes(user.email?.toLowerCase()) ? "admin" : "user")
+        };
+        setCurrentUserSession(userObj);
+        return userObj;
       }
       return user;
     } catch (error) {
       console.warn("API getCurrentUser failed, using localStorage fallback:", error.message);
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No token found");
-      const user = JSON.parse(localStorage.getItem("mock_current_user"));
+      const user = getCurrentUserSession();
       if (!user) throw new Error("User session not found");
-      return user;
+      const userObj = {
+        ...user,
+        role: user.role || (adminEmails.includes(user.email?.toLowerCase()) ? "admin" : "user")
+      };
+      return userObj;
     }
   },
 
@@ -285,7 +336,7 @@ export const api = {
       return response.data;
     } catch (error) {
       console.warn("API resetPassword failed, using localStorage fallback:", error.message);
-      const user = JSON.parse(localStorage.getItem("mock_current_user"));
+      const user = getCurrentUserSession();
       if (!user) throw new Error("User session not found");
       if (user.password !== oldPassword) {
         throw new Error("Old password is incorrect");
@@ -300,7 +351,7 @@ export const api = {
       }
       
       user.password = newPassword;
-      localStorage.setItem("mock_current_user", JSON.stringify(user));
+      setCurrentUserSession(user);
       return { message: "Password reset successful" };
     }
   },
@@ -312,7 +363,7 @@ export const api = {
       return response.data;
     } catch (error) {
       console.warn("API updateProfile failed, using localStorage fallback:", error.message);
-      const user = JSON.parse(localStorage.getItem("mock_current_user"));
+      const user = getCurrentUserSession();
       if (!user) throw new Error("User session not found");
       
       // Update in users database
@@ -326,7 +377,7 @@ export const api = {
       
       user.username = username;
       user.avatar = avatar;
-      localStorage.setItem("mock_current_user", JSON.stringify(user));
+      setCurrentUserSession(user);
       return user;
     }
   },
@@ -354,6 +405,7 @@ export const api = {
         id: posts.length > 0 ? Math.max(...posts.map(p => p.id)) + 1 : 1,
         likes: 0,
         author: postData.author || "Admin",
+        authorAvatar: postData.authorAvatar || null,
         date: postData.date || new Date().toISOString()
       };
       posts.unshift(newPost); // Add to beginning

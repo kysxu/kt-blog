@@ -31,7 +31,8 @@ function formatDate(dateStr) {
   }
 }
 
-function BlogCard({ id, image, category, title, description, author, date }) {
+function BlogCard({ id, image, category, title, description, author, authorAvatar, date }) {
+  const avatarUrl = authorAvatar || authorImage;
   return (
     <div className="flex flex-col gap-4">
       <Link to={`/post/${id}`} className="relative h-[212px] sm:h-[360px]">
@@ -57,8 +58,8 @@ function BlogCard({ id, image, category, title, description, author, date }) {
         </p>
         <div className="flex items-center text-sm">
           <img
-            className="w-8 h-8 rounded-full mr-2"
-            src={authorImage}
+            className="w-8 h-8 rounded-full mr-2 object-cover"
+            src={avatarUrl}
             alt={author}
           />
           <span className="text-foreground">{author}</span>
@@ -275,6 +276,7 @@ export default function ArticleSection() {
                 title={blog.title}
                 description={blog.description}
                 author={blog.author}
+                authorAvatar={blog.authorAvatar}
                 date={blog.date}
               />
             ))}
